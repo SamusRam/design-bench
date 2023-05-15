@@ -1,9 +1,78 @@
 from design_bench.oracles.approximate_oracle import ApproximateOracle
 from design_bench.datasets.discrete_dataset import DiscreteDataset
-import tempfile
-import math
-import numpy as np
-import shutil
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import os
+
+AAV_CHEKPOINT_FILE = os.path.join(os.path.dirname(__file__), '..', 'ckpt', 'avv_cnn_best.ckpt')
+
+
+class LengthMaxPool1D(nn.Module):
+    def __init__(self, in_dim, out_dim, linear=False, activation='relu'):
+        super().__init__()
+        self.linear = linear
+        if self.linear:
+            self.layer = nn.Linear(in_dim, out_dim)
+
+        if activation == 'swish':
+            self.act_fn = lambda x: x * torch.sigmoid(100.0*x)
+        elif activation == 'softplus':
+            self.act_fn = nn.Softplus()
+        elif activation == 'sigmoid':
+            self.act_fn = nn.Sigmoid()
+        elif activation == 'leakyrelu':
+            self.act_fn = nn.LeakyReLU()
+        elif activation == 'relu':
+            self.act_fn = lambda x: F.relu(x)
+        else:
+            raise NotImplementedError
+
+    def forward(self, x):
+        if self.linear:
+            x = self.act_fn(self.layer(x))
+        x = torch.max(x, dim=1)[0]
+        return x
+
+
+class BaselineCNN(nn.Module):
+    def __init__(
+            self,
+            n_tokens: int = 20,
+            kernel_size: int = 5 ,
+            input_size: int = 1024,
+            dropout: float = 0.0,
+            make_one_hot=True,
+            activation: str = 'relu',
+            linear: bool=True,
+            **kwargs):
+        super(BaselineCNN, self).__init__()
+        self.encoder = nn.Conv1d(n_tokens, input_size, kernel_size=kernel_size)
+        self.embedding = LengthMaxPool1D(
+            linear=linear,
+            in_dim=input_size,
+            out_dim=input_size*2,
+            activation=activation,
+        )
+        self.decoder = nn.Linear(input_size*2, 1)
+        self.n_tokens = n_tokens
+        self.dropout = nn.Dropout(dropout) # TODO: actually add this to model
+        self.input_size = input_size
+        self._make_one_hot = make_one_hot
+
+    def forward(self, x):
+        #onehotize
+        if self._make_one_hot:
+            x = F.one_hot(x.long(), num_classes=self.n_tokens)
+        x = x.permute(0, 2, 1).float()
+        # encoder
+        x = self.encoder(x).permute(0, 2, 1)
+        x = self.dropout(x)
+        # embed
+        x = self.embedding(x)
+        # decoder
+        output = self.decoder(x).squeeze(1)
+        return output
 
 
 class AvvCnnOracle(ApproximateOracle):
@@ -92,6 +161,12 @@ class AvvCnnOracle(ApproximateOracle):
 
         """
 
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        self.scorer = BaselineCNN(input_size=256)
+        scorer_info = torch.load(AAV_CHEKPOINT_FILE, map_location=self.device)
+        self.scorer.load_state_dict({k.replace('scorer.', ''): v for k, v in scorer_info['state_dict'].items()}, strict=True)
+        self.scorer.to(self.device).eval()
+
         # initialize the oracle using the super class
         super(AvvCnnOracle, self).__init__(
             dataset, is_batched=True, internal_measurements=1,
@@ -113,4 +188,5 @@ class AvvCnnOracle(ApproximateOracle):
         return True
 
     def protected_predict(self, x, model=None):
-        return [-1]
+        batch_seqs_torch = torch.tensor(x).to(self.device)
+        return self.scorer(batch_seqs_torch).detach().cpu().numpy()
