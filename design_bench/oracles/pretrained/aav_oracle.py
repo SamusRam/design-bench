@@ -110,7 +110,7 @@ class AvvCnnOracle(ApproximateOracle):
         pass
 
     def check_input_format(cls, dataset):
-        pass
+        return True
 
     def protected_predict(self, x, model=None):
         raise NotImplementedError
