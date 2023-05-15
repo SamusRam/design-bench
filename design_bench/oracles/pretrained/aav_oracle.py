@@ -109,5 +109,8 @@ class AvvCnnOracle(ApproximateOracle):
     def protected_fit(self, training, validation, model_kwargs=None):
         pass
 
+    def check_input_format(cls, dataset):
+        pass
+
     def protected_predict(self, x, model=None):
         raise NotImplementedError
