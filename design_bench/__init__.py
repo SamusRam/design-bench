@@ -1651,3 +1651,18 @@ register('DKittyMorphology-FullyConnected-v0',
                                to_disk=False,
                                disk_target=None,
                                is_absolute=None)))
+
+
+register('AAV-FixedLength-v0',
+         'design_bench.datasets.discrete.aav_dataset:AAVDataset',
+         'design_bench.oracles.pretrained.aav_oracle:AvvCnnOracle',
+
+         # keyword arguments for building the dataset
+         dataset_kwargs=dict(
+             max_samples=None,
+             distribution=None,
+             max_percentile=20,
+             min_percentile=40,
+             min_mutant_dist=5),
+
+         oracle_kwargs=dict())

@@ -67,7 +67,7 @@ def default_quadratic_distribution(ranks):
 
     ranks = ranks.astype(np.float32)
     ranks = ranks / ranks.max()
-    return (1.0 - ranks)**2
+    return (1.0 - ranks) ** 2
 
 
 def default_circular_distribution(ranks):
@@ -90,7 +90,7 @@ def default_circular_distribution(ranks):
 
     ranks = ranks.astype(np.float32)
     ranks = ranks / ranks.max()
-    return 1.0 - np.sqrt(1.0 - (ranks - 1.0)**2)
+    return 1.0 - np.sqrt(1.0 - (ranks - 1.0) ** 2)
 
 
 def default_exponential_distribution(ranks, c=3.0):
@@ -342,7 +342,7 @@ class DatasetBuilder(abc.ABC):
     def __init__(self, x_shards, y_shards, internal_batch_size=32,
                  is_normalized_x=False, is_normalized_y=False,
                  max_samples=None, distribution=None,
-                 max_percentile=100.0, min_percentile=0.0):
+                 max_percentile=100.0, min_percentile=0.0, min_mutant_dist=None, random=False):
         """Initialize a model-based optimization dataset and prepare
         that dataset by loading that dataset from disk and modifying
         its distribution of designs and predictions
@@ -408,6 +408,7 @@ class DatasetBuilder(abc.ABC):
         # update variables that describe the data set
         self.dataset_min_percentile = 0.0
         self.dataset_max_percentile = 100.0
+        self.min_mutant_dist = min_mutant_dist
         self.dataset_min_output = np.NINF
         self.dataset_max_output = np.PINF
         self.dataset_distribution = None
@@ -416,6 +417,7 @@ class DatasetBuilder(abc.ABC):
         self.internal_batch_size = internal_batch_size
         self.is_normalized_x = False
         self.is_normalized_y = False
+        self.random = random
 
         # special flag that control when the dataset is mutable
         self.freeze_statistics = False
@@ -463,7 +465,9 @@ class DatasetBuilder(abc.ABC):
         self.subsample(max_samples=max_samples,
                        distribution=distribution,
                        min_percentile=min_percentile,
-                       max_percentile=max_percentile)
+                       max_percentile=max_percentile,
+                       min_mutant_dist=min_mutant_dist,
+                       random=random)
 
     def get_num_shards(self):
         """A helper function that returns the number of shards in a
@@ -691,7 +695,7 @@ class DatasetBuilder(abc.ABC):
                 y_batch if return_y else None)
 
     def iterate_batches(self, batch_size, return_x=True,
-                        return_y=True, drop_remainder=False):
+                        return_y=True, drop_remainder=False, random=False):
         """Returns an object that supports iterations, which yields tuples of
         design values 'x' and prediction values 'y' from a model-based
         optimization data set for training a model
@@ -747,9 +751,9 @@ class DatasetBuilder(abc.ABC):
 
                 # slice out a component of the current shard
                 x_sliced = x_shard_data[shard_position:(
-                    shard_position + target_size)] if return_x else None
+                        shard_position + target_size)] if return_x else None
                 y_sliced = y_shard_data[shard_position:(
-                    shard_position + target_size)]
+                        shard_position + target_size)]
 
                 # store the batch_size of samples read
                 samples_read = y_sliced.shape[0]
@@ -757,10 +761,9 @@ class DatasetBuilder(abc.ABC):
                 # take a subset of the sliced arrays using a pre-defined
                 # transformation that sub-samples
                 if not self._disable_subsample:
-
                     # compute which samples are exposed in the dataset
                     indices = np.where(self.dataset_visible_mask[
-                        sample_id:sample_id + y_sliced.shape[0]])[0]
+                                       sample_id:sample_id + y_sliced.shape[0]])[0]
 
                     # sub sample the design and prediction values
                     x_sliced = x_sliced[indices] if return_x else None
@@ -769,12 +772,19 @@ class DatasetBuilder(abc.ABC):
                 # take a subset of the sliced arrays using a pre-defined
                 # transformation that normalizes
                 if not self._disable_transform:
-
                     # apply a transformation to the dataset
                     x_sliced, y_sliced = self.batch_transform(
                         x_sliced, y_sliced,
                         return_x=return_x, return_y=return_y)
 
+                if random:
+                    alphabet = 'ARNDCQEGHILKMFPSTWYV'
+                    rng = np.random.default_rng(samples_read)
+                    seed = 0
+                    if return_x:
+                        x_sliced = rng.choice(np.arange(len(alphabet)), x_sliced.shape).astype(np.float32)
+                    if return_y:
+                        y_sliced = rng.normal(1.3, np.sqrt(0.1), y_sliced.shape).astype(np.float32)
                 # update the read position in the shard tensor
                 shard_position += target_size
                 sample_id += samples_read
@@ -888,14 +898,13 @@ class DatasetBuilder(abc.ABC):
         samples = x_mean = 0
         for x_batch in self.iterate_batches(
                 self.internal_batch_size, return_y=False):
-
             # calculate how many samples are actually in the current batch
             batch_size = np.array(x_batch.shape[0], dtype=np.float32)
 
             # update the running mean using dynamic programming
             x_mean = x_mean * (samples / (samples + batch_size)) + \
-                np.sum(x_batch,
-                       axis=0, keepdims=True) / (samples + batch_size)
+                     np.sum(x_batch,
+                            axis=0, keepdims=True) / (samples + batch_size)
 
             # update the number of samples used in the calculation
             samples += batch_size
@@ -904,14 +913,13 @@ class DatasetBuilder(abc.ABC):
         samples = x_variance = 0
         for x_batch in self.iterate_batches(
                 self.internal_batch_size, return_y=False):
-
             # calculate how many samples are actually in the current batch
             batch_size = np.array(x_batch.shape[0], dtype=np.float32)
 
             # update the running variance using dynamic programming
             x_variance = x_variance * (samples / (samples + batch_size)) + \
-                np.sum(np.square(x_batch - x_mean),
-                       axis=0, keepdims=True) / (samples + batch_size)
+                         np.sum(np.square(x_batch - x_mean),
+                                axis=0, keepdims=True) / (samples + batch_size)
 
             # update the number of samples used in the calculation
             samples += batch_size
@@ -946,14 +954,13 @@ class DatasetBuilder(abc.ABC):
         samples = y_mean = 0
         for y_batch in self.iterate_batches(
                 self.internal_batch_size, return_x=False):
-
             # calculate how many samples are actually in the current batch
             batch_size = np.array(y_batch.shape[0], dtype=np.float32)
 
             # update the running mean using dynamic programming
             y_mean = y_mean * (samples / (samples + batch_size)) + \
-                np.sum(y_batch,
-                       axis=0, keepdims=True) / (samples + batch_size)
+                     np.sum(y_batch,
+                            axis=0, keepdims=True) / (samples + batch_size)
 
             # update the number of samples used in the calculation
             samples += batch_size
@@ -962,14 +969,13 @@ class DatasetBuilder(abc.ABC):
         samples = y_variance = 0
         for y_batch in self.iterate_batches(
                 self.internal_batch_size, return_x=False):
-
             # calculate how many samples are actually in the current batch
             batch_size = np.array(y_batch.shape[0], dtype=np.float32)
 
             # update the running variance using dynamic programming
             y_variance = y_variance * (samples / (samples + batch_size)) + \
-                np.sum(np.square(y_batch - y_mean),
-                       axis=0, keepdims=True) / (samples + batch_size)
+                         np.sum(np.square(y_batch - y_mean),
+                                axis=0, keepdims=True) / (samples + batch_size)
 
             # update the number of samples used in the calculation
             samples += batch_size
@@ -986,7 +992,7 @@ class DatasetBuilder(abc.ABC):
         self.is_normalized_y = original_is_normalized_y
 
     def subsample(self, max_samples=None, distribution=None,
-                  max_percentile=100.0, min_percentile=0.0):
+                  max_percentile=100.0, min_percentile=0.0, min_mutant_dist=None, random=False):
         """a function that exposes a subsampled version of a much larger
         model-based optimization dataset containing design values 'x'
         whose prediction values 'y' are skewed
@@ -1045,6 +1051,21 @@ class DatasetBuilder(abc.ABC):
         # calculate indices of samples that are within range
         indices = np.arange(y.shape[0])[np.where(
             np.logical_and(y <= max_output, y >= min_output))[0]]
+        # import pdb; pdb.set_trace()
+        if min_mutant_dist:
+            x = np.concatenate(list(self.iterate_batches(
+                self.internal_batch_size, return_y=False)), axis=0)
+            top_sequence_idxs = np.array(y >= np.percentile(y[:, 0], 99)).reshape(y.shape[0], )
+            top_sequences = x[top_sequence_idxs, :]
+
+            # Vectorize the double list comprehension
+            dists = np.sum(x[:, None, :] != top_sequences, axis=-1)
+            min_dists = np.min(dists, axis=1)
+            min_dists = min_dists.astype(np.int32).reshape(len(top_sequence_idxs), 1)
+            # all_idxs = np.arange(y.shape[0])
+            indices = np.arange(y.shape[0])[np.where(
+                np.logical_and(np.logical_and(y <= max_output, y >= min_output), min_dists > min_mutant_dist))[0]]
+
         max_samples = indices.size \
             if max_samples is None else min(indices.size, max_samples)
 
@@ -1097,7 +1118,7 @@ class DatasetBuilder(abc.ABC):
         """
 
         return np.concatenate([x for x in self.iterate_batches(
-            self.internal_batch_size, return_y=False)], axis=0)
+            self.internal_batch_size, return_y=False, random=self.random)], axis=0)
 
     @property
     def y(self) -> np.ndarray:
@@ -1114,7 +1135,7 @@ class DatasetBuilder(abc.ABC):
         """
 
         return np.concatenate([y for y in self.iterate_batches(
-            self.internal_batch_size, return_x=False)], axis=0)
+            self.internal_batch_size, return_x=False, random=self.random)], axis=0)
 
     def relabel(self, relabel_function,
                 to_disk=None, disk_target=None, is_absolute=None):
@@ -1339,7 +1360,7 @@ class DatasetBuilder(abc.ABC):
 
             # if the validation shard is large enough then write it
             if (sample_id + 1 == self.dataset_visible_mask.size and
-                    len(partial_shard_x) > 0) or \
+                len(partial_shard_x) > 0) or \
                     len(partial_shard_x) >= shard_size:
 
                 # stack the sampled x and y values into a shard
@@ -1347,7 +1368,6 @@ class DatasetBuilder(abc.ABC):
                 shard_y = np.stack(partial_shard_y, axis=0)
 
                 if to_disk:
-
                     # write the design values shard first to a new file
                     x_resource = DiskResource(
                         f"{disk_target}-x-{len(x_shards)}.npy",
