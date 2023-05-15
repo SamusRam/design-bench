@@ -167,6 +167,11 @@ class AvvCnnOracle(ApproximateOracle):
         self.scorer.load_state_dict({k.replace('scorer.', ''): v for k, v in scorer_info['state_dict'].items()}, strict=True)
         self.scorer.to(self.device).eval()
         self.is_batched = True
+        self.internal_batch_size = None
+        self.internal_measurements = 1
+        self.internal_min_y = 0
+        self.noise_std = 0
+        self.num_evaluations = 0
 
     def save_model_to_zip(self, model, zip_archive):
         pass
@@ -179,6 +184,12 @@ class AvvCnnOracle(ApproximateOracle):
 
     def check_input_format(cls, dataset):
         return True
+
+    def dataset_to_oracle_x(self, x_sliced, dataset=None):
+        return x_sliced
+
+    def oracle_to_dataset_y(self, y_sliced, dataset=None):
+        return y_sliced
 
     def protected_predict(self, x, model=None):
         batch_seqs_torch = torch.tensor(x).to(self.device)
