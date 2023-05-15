@@ -1661,8 +1661,8 @@ register('AAV-FixedLength-v0',
          dataset_kwargs=dict(
              max_samples=None,
              distribution=None,
-             max_percentile=20,
-             min_percentile=40,
+             max_percentile=40,
+             min_percentile=20,
              min_mutant_dist=5),
 
          oracle_kwargs=dict())
