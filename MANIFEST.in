@@ -1,1 +1,2 @@
 include design_bench/datasets/datafiles/*
+include design_bench/oracles/ckpt/*
