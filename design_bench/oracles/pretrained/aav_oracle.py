@@ -113,4 +113,4 @@ class AvvCnnOracle(ApproximateOracle):
         return True
 
     def protected_predict(self, x, model=None):
-        raise NotImplementedError
+        return [-1]
