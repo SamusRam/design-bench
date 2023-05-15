@@ -166,6 +166,7 @@ class AvvCnnOracle(ApproximateOracle):
         scorer_info = torch.load(AAV_CHEKPOINT_FILE, map_location=self.device)
         self.scorer.load_state_dict({k.replace('scorer.', ''): v for k, v in scorer_info['state_dict'].items()}, strict=True)
         self.scorer.to(self.device).eval()
+        self.is_batched = True
 
     def save_model_to_zip(self, model, zip_archive):
         pass
