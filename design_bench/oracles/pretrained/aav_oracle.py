@@ -167,14 +167,6 @@ class AvvCnnOracle(ApproximateOracle):
         self.scorer.load_state_dict({k.replace('scorer.', ''): v for k, v in scorer_info['state_dict'].items()}, strict=True)
         self.scorer.to(self.device).eval()
 
-        # initialize the oracle using the super class
-        super(AvvCnnOracle, self).__init__(
-            dataset, is_batched=True, internal_measurements=1,
-            expect_normalized_y=True,
-            expect_normalized_x=not isinstance(dataset, DiscreteDataset),
-            expect_logits=False if isinstance(
-                dataset, DiscreteDataset) else None, **kwargs)
-
     def save_model_to_zip(self, model, zip_archive):
         pass
 
