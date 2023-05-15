@@ -192,5 +192,9 @@ class AvvCnnOracle(ApproximateOracle):
         return y_sliced
 
     def protected_predict(self, x, model=None):
+        for _ in range(3):
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        print('-'*30)
         batch_seqs_torch = torch.tensor(x).to(self.device)
+        print('batch_seqs_torch', batch_seqs_torch)
         return self.scorer(batch_seqs_torch).detach().cpu().numpy()
