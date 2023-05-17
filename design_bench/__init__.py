@@ -1681,3 +1681,17 @@ register('AAV-FixedLengthHard-v0',
              min_mutant_dist=6),
 
          oracle_kwargs=dict())
+
+register('AAV-FixedLengthEasy-v0',
+         'design_bench.datasets.discrete.aav_dataset:AAVDataset',
+         'design_bench.oracles.pretrained.aav_oracle:AvvCnnOracle',
+
+         # keyword arguments for building the dataset
+         dataset_kwargs=dict(
+             max_samples=None,
+             distribution=None,
+             max_percentile=60,
+             min_percentile=50,
+             min_mutant_dist=-1),
+
+         oracle_kwargs=dict())
