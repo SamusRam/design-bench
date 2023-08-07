@@ -14,7 +14,8 @@ class GB1Dataset(DiscreteDataset):
 
     @staticmethod
     def register_x_shards():
-        return
+        return [DiskResource(disk_target=disc_target, is_absolute=True)
+                for disc_target in GB1_DATA_FILE_X]
 
     @staticmethod
     def register_y_shards():
