@@ -1820,47 +1820,6 @@ register('GFP-TransformerHard-v0',
                                is_absolute=False)))
 
 
-register('GFP-TransformerHard-v0',
-         'design_bench.datasets.discrete.gfp_dataset:GFPDataset',
-         'design_bench.oracles.tensorflow:TransformerOracle',
-
-         # keyword arguments for building the dataset
-         dataset_kwargs=dict(
-             max_samples=5000,
-             distribution=None,
-             max_percentile=30,
-             min_percentile=10,
-             min_mutant_dist=6),
-
-         # keyword arguments for training Transformer oracle
-         oracle_kwargs=dict(
-             noise_std=0.0,
-             internal_batch_size=32,
-             max_samples=None,
-             distribution=None,
-             max_percentile=100,
-             min_percentile=0,
-
-             # parameters used for building the model
-             model_kwargs=dict(hidden_size=64,
-                               feed_forward_size=256,
-                               activation='relu',
-                               num_heads=2,
-                               num_blocks=4,
-                               epochs=20,
-                               shuffle_buffer=60000,
-                               learning_rate=0.0001,
-                               dropout_rate=0.1),
-
-             # parameters used for building the validation set
-             split_kwargs=dict(val_fraction=0.1,
-                               subset=None,
-                               shard_size=5000,
-                               to_disk=True,
-                               disk_target="gfp/split",
-                               is_absolute=False)))
-
-
 register('GB1-FixedLength-v0',
          'design_bench.datasets.discrete.gb1_dataset:GB1Dataset',
          'design_bench.oracles.exact.gb1_oracle:GB1Oracle',
