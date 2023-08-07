@@ -1,5 +1,5 @@
 from .hopper_controller_oracle import HopperControllerOracle
-from .ant_morphology_oracle import AntMorphologyOracle
+# from .ant_morphology_oracle import AntMorphologyOracle
 from .dkitty_morphology_oracle import DKittyMorphologyOracle
 from .toy_continuous_oracle import ToyContinuousOracle
 from .nas_bench_oracle import NASBenchOracle
