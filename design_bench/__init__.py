@@ -1,8 +1,8 @@
 from design_bench.registration import registry, register, make, spec
 from design_bench.oracles.sklearn.kernels import ProteinKernel
 from design_bench.oracles.sklearn.kernels import DefaultSequenceKernel
-from design_bench.oracles.feature_extractors.\
-    morgan_fingerprint_features import MorganFingerprintFeatures
+# from design_bench.oracles.feature_extractors.\
+#     morgan_fingerprint_features import MorganFingerprintFeatures
 from sklearn.gaussian_process.kernels import ConstantKernel, RBF
 import numpy as np
 
@@ -763,7 +763,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
                  min_percentile=0,
 
                  # process the data into morgan fingerprints
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.int32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.int32),
 
                  # parameters used for building the model
                  model_kwargs=dict(kernel=DefaultSequenceKernel(size=2),
@@ -829,7 +829,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
 
                  # process the data into morgan fingerprints
                  override_input_spec=True,
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.float32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.float32),
 
                  # parameters used for building the model
                  model_kwargs=dict(n_estimators=100,
@@ -896,7 +896,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
                  min_percentile=0,
 
                  # process the data into morgan fingerprints
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.float32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.float32),
 
                  # parameters used for building the model
                  model_kwargs=dict(embedding_size=32,
@@ -971,7 +971,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
                  min_percentile=0,
 
                  # process the data into morgan fingerprints
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.int32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.int32),
 
                  # parameters used for building the model
                  model_kwargs=dict(hidden_size=64,
@@ -1042,7 +1042,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
                  min_percentile=0,
 
                  # process the data into morgan fingerprints
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.int32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.int32),
 
                  # parameters used for building the model
                  model_kwargs=dict(hidden_size=64,
@@ -1118,7 +1118,7 @@ for standard_type, assay_chembl_id in [('MCHC', 'CHEMBL3885882'),
                  min_percentile=0,
 
                  # process the data into morgan fingerprints
-                 feature_extractor=MorganFingerprintFeatures(dtype=np.int32),
+                 feature_extractor=None, #MorganFingerprintFeatures(dtype=np.int32),
 
                  # parameters used for building the model
                  model_kwargs=dict(hidden_size=128,
