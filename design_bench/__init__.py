@@ -1830,7 +1830,7 @@ register('GB1-FixedLength-v0',
              distribution=None,
              max_percentile=40,
              min_percentile=20,
-             min_mutant_dist=0),
+             min_mutant_dist=1),
 
          oracle_kwargs=dict())
 
@@ -1844,7 +1844,7 @@ register('GB1-FixedLengthHard-v0',
              distribution=None,
              max_percentile=30,
              min_percentile=10,
-             min_mutant_dist=1),
+             min_mutant_dist=2),
 
          oracle_kwargs=dict())
 
