@@ -1828,8 +1828,8 @@ register('GB1-FixedLength-v0',
          dataset_kwargs=dict(
              max_samples=None,
              distribution=None,
-             max_percentile=40,
-             min_percentile=20,
+             max_percentile=90,
+             min_percentile=0,
              min_mutant_dist=1),
 
          oracle_kwargs=dict())
